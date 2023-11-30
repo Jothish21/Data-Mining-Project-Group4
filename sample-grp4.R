@@ -1,6 +1,5 @@
-
-# Install required package if not installed
-# install.packages("e1071")
+# Install required packages if not installed
+# install.packages(c("arules", "caret", "dbscan", "ggplot2", "e1071", "kmeans"))
 
 # Load necessary libraries
 library(arules)      # for association rules
@@ -8,13 +7,45 @@ library(caret)       # for classification and performance evaluation
 library(dbscan)      # for clustering
 library(ggplot2)     # for visualization
 library(e1071)       # for SVM classification
-library(kmeans)       # for k-means clustering
+library(kmeans)      # for k-means clustering
 
 # Load your dataset
 shopping_data <- read.csv("your_dataset.csv")
 
-# Explore the data
+# Data Pre-processing
+# Check for missing values
+missing_values <- colSums(is.na(shopping_data))
+print("Missing Values:")
+print(missing_values)
+
+# Impute missing values if necessary
+# Example: Impute missing values in the "age" column with the mean
+shopping_data$age[is.na(shopping_data$age)] <- mean(shopping_data$age, na.rm = TRUE)
+
+# Check for duplicated rows
+duplicated_rows <- shopping_data[duplicated(shopping_data), ]
+print("Duplicated Rows:")
+print(duplicated_rows)
+
+# Remove duplicated rows if necessary
+# Example: Remove duplicated rows
+shopping_data <- unique(shopping_data)
+
+# Convert categorical variables to factors
+# Example: Convert "category" and "payment_method" to factors
+shopping_data$category <- as.factor(shopping_data$category)
+shopping_data$payment_method <- as.factor(shopping_data$payment_method)
+
+# Explore the data after pre-processing
 summary(shopping_data)
+
+# Detect and handle outliers using a more robust method (Tukey's method)
+# Example: Detect and remove outliers in the "quantity" column
+outliers <- boxplot.stats(shopping_data$quantity)$out
+print("Outliers:")
+print(outliers)
+
+shopping_data <- shopping_data[!(shopping_data$quantity %in% outliers), ]
 
 # Association Rules
 # Example: Apriori algorithm
@@ -61,6 +92,7 @@ plot(roc_curve_svm, col = "blue", main = "ROC Curve (SVM)", lwd = 2)
 
 # Additional performance metrics for SVM
 confusionMatrix(predictions_svm, test_data$payment_method)
+
 
 
 # Install required packages if not installed
