@@ -42,6 +42,33 @@ outliers
 
 # Association
 
+# Creating transactions & finding the maximal sets
+transactions <- as(shopping_data, "transactions")
+
+sets <- apriori(transactions, parameter = list(support = 0.05, target = "frequent itemsets"))
+inspect(sets)
+
+maximal = sets[is.maximal(sets)]
+summary(maximal)
+inspect(head(maximal, n = 5, by = "support"))
+
+maximal
+
+# Making a maximal set with main focus on Category variable
+maximal_cat_cloth <- subset(maximal, subset=(items %in% "category=Clothing"))
+maxi_cloth_df <- as(maximal_cat_cloth, "data.frame")
+
+maxi_cloth_df
+
+# Making a maximal set with main focus on Female value from Gender variable
+maximal_gen_female <- subset(maximal, subset=(items %in% "gender=Female"))
+gen_female_df <- as(maximal_gen_female, "data.frame")
+
+gen_female_df
+
+
+
+
 
 
 

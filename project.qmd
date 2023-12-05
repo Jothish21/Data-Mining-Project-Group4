@@ -2,6 +2,7 @@
 title: "Customer_Shopping_Info_Data_Mining"
 format: pdf
 editor: visual
+author: "Jothish Kumar Polaki, Vidhyananth Sivashanmugam, Rohit Kalakala"
 ---
 
 ## Setup & Loading Libraries
@@ -60,17 +61,86 @@ missing_values
 
 # Checking for duplicated rows
 duplicated_rows <- shopping_data[duplicated(shopping_data), ]
-duplicates_rows
-
-# Converting categorical variables to factors
-shopping_data$gender <- as.factor(shopping_data$gender)
-shopping_data$category <- as.factor(shopping_data$category)
-shopping_data$payment_method <- as.factor(shopping_data$payment_method)
-shopping_data$shopping_mall <- as.factor(shopping_data$shopping_mall)
+duplicated_rows
 
 # Detecting and handle outliers using a more robust method (Tukey's method)
 outliers <- boxplot.stats(shopping_data$quantity)$out
 outliers
+```
+
+## Data Exploration
+
+### Total quantity purchase of all category by gender
+
+```{r}
+bc_data <- shopping_data |>
+  group_by(gender, category) |>
+  summarise(total_quantity = sum(quantity)) |>
+  ungroup()
+
+bc_data
+```
+
+### Visualization of total quantity purchased by gender for each category
+
+```{r}
+bc_data |>
+  ggplot(aes(x = category, y = total_quantity, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(position = position_dodge(width = 0.9), aes(label = total_quantity), vjust = -0.5, size = 3) +
+  labs(title = "Total Quantity by Category (Split by Gender)",
+       x = "Category",
+       y = "Total Quantity") +
+  theme_minimal() +
+  scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylim(0, min(circularbc_data$total_quantity) * 11)
+```
+
+### Preparering data for finding out the distribution of all category items
+
+```{r}
+category_distribution <- table(shopping_data$category)
+category_percentages <- prop.table(category_distribution) * 100
+category_data <- data.frame(Category = names(category_distribution), Count = category_distribution)
+```
+
+### Visualizing Distribution of all Category items
+
+```{r}
+ggplot(category_data, aes(x = "", y = category_percentages , fill = Category)) +
+  geom_bar(stat = "identity", width = 1, color = "black") +
+  geom_text(aes(label = paste0(round(category_percentages, 1), "%")), position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +
+  scale_fill_manual(values = rainbow(length(category_distribution))) +
+  labs(title = "Distribution of all category items",
+       fill = "Category") +
+  theme_void() +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "right")
+```
+
+### Finding out the payment method usage by ages
+
+```{r}
+shopping_data$age_group <- cut(shopping_data$age, breaks = c(15, 25, 35, 45, 55, 65, Inf), labels = c("15-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+
+bar_data <- table(shopping_data$age_group, shopping_data$payment_method)
+bar_data <- as.data.frame(bar_data)
+
+bar_data
+```
+
+### Visualizing the payment methods used by different age groups
+
+```{r}
+ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Age Group vs Payment Method",
+       x = "Age Group", y = "Frequency") +
+  scale_fill_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
+  theme_minimal()
 ```
 
 ## Association Rule Mining
@@ -87,25 +157,27 @@ maximal = sets[is.maximal(sets)]
 summary(maximal)
 inspect(head(maximal, n = 5, by = "support"))
 
-maximal
+head(maximal)
 ```
 
 ### Making a maximal set with main focus on Category variable
 
 ```{r}
 maximal_cat_cloth <- subset(maximal, subset=(items %in% "category=Clothing"))
+
 maxi_cloth_df <- as(maximal_cat_cloth, "data.frame")
 
-maxi_cloth_df
+head(maxi_cloth_df)
 ```
 
 ### Making a maximal set with main focus on Female value from Gender variable
 
 ```{r}
 maximal_gen_female <- subset(maximal, subset=(items %in% "gender=Female"))
+
 gen_female_df <- as(maximal_gen_female, "data.frame")
 
-gen_female_df
+head(gen_female_df)
 ```
 
 ### Mining rules using apriori & inspceting top rules
@@ -115,11 +187,11 @@ rules <- apriori(shopping_data, parameter = list(support = 0.05, confidence = 0.
 
 rules_max <- subset(rules, subset = is.maximal(rules))
 
-inspect(rules_max)
+head(rules_max)
 
 df_max_apriori_rules <- as(rules_max, "data.frame")
 
-df_max_apriori_rules
+head(df_max_apriori_rules)
 ```
 
 ### Mining rules using eclat & inspecting top rules
@@ -133,5 +205,139 @@ rules_max_eclat <- subset(rules_from_maximal, subset = is.maximal(rules_from_max
 
 df_max_eclat_rules <- as(rules_max_eclat, "data.frame")
 
-df_max_eclat_rules
+head(df_max_eclat_rules)
+```
+
+## Classification
+
+### Pre-Processing
+
+```{r}
+# Converting categorical variables to factors
+shopping_data$gender <- as.factor(shopping_data$gender)
+shopping_data$category <- as.factor(shopping_data$category)
+shopping_data$payment_method <- as.factor(shopping_data$payment_method)
+shopping_data$shopping_mall <- as.factor(shopping_data$shopping_mall)
+```
+
+### Indexing and Splitting data-set
+
+```{r}
+set.seed(123)  # For reproducibility
+trainIndex <- createDataPartition(shopping_data$gender, p = 0.7, list = FALSE)
+training_data <- shopping_data[trainIndex, ]
+testing_data <- shopping_data[-trainIndex, ]
+```
+
+### Random Forest
+
+```{r}
+rf_model <- randomForest(gender ~ ., data = training_data)
+
+predictions_rf <- predict(rf_model, newdata = testing_data)
+
+head(predictions_rf) 
+```
+
+### Confusion Matrix for Evaluating Random Forest
+
+```{r}
+conf_matrix1 <- confusionMatrix(predictions_rf, testing_data$gender)
+
+
+print(conf_matrix1)
+precision <- conf_matrix1$byClass["Pos Pred Value"]
+recall <- conf_matrix$byClass["Sensitivity"]
+f1_score <- 2 * (precision * recall) / (precision + recall)
+
+cat("Precision:", precision, "\n")
+cat("Recall:", recall, "\n")
+cat("F1 Score:", f1_score, "\n")
+```
+
+### Plotting Confusion matrix for Random Forest classification
+
+```{r}
+plot(conf_matrix1$table, 
+     col = conf_matrix1$byClass,
+     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix1$overall["Accuracy"], 3)))
+```
+
+### Naive Bayes
+
+```{r}
+nb_model <- naiveBayes(gender ~ ., data = training_data)
+
+predictions_nb <- predict(nb_model, newdata = testing_data)
+
+head(predictions_nb)
+```
+
+### Confusion Matrix for Evaluating Naive Bayes
+
+```{r}
+conf_matrix2 <- confusionMatrix(predictions_nb, testing_data$gender)
+
+print(conf_matrix2)
+precision1 <- conf_matrix$byClass["Pos Pred Value"]
+recall1 <- conf_matrix$byClass["Sensitivity"]
+f1_score1 <- 2 * (precision * recall) / (precision + recall)
+
+cat("Precision:", precision1, "\n")
+cat("Recall:", recall1, "\n")
+cat("F1 Score:", f1_score1, "\n")
+```
+
+### Plotting Confusion matrix for Naive Bayes classification
+
+```{r}
+plot(conf_matrix2$table, 
+     col = conf_matrix$byClass,
+     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix$overall["Accuracy"], 3)))
+```
+
+## Clustering
+
+### Clustering using DBSCAN
+
+```{r}
+shopping_features <- shopping_data[, c("age", "quantity", "price")]
+
+dbscan_result <- dbscan(shopping_features, eps = 3, minPts = 1000)
+table(dbscan_result$cluster)
+dbscan_result
+cluster_data <- data.frame(shopping_features, Cluster = dbscan_result$cluster)
+
+head(cluster_data)
+```
+
+### Visualizing the clustering from DBSCAN
+
+```{r}
+ggplot(cluster_data, aes(x = quantity, y = age, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "DBSCAN Clustering Results",
+       x = "quantity", y = "Age", color = "Cluster") +
+  theme_minimal()
+```
+
+### Clustering using k-means
+
+```{r}
+kmeans_result <- kmeans(shopping_features, centers = 3)
+table(kmeans_result$cluster)
+head(kmeans_result$cluster)
+shopping_data$cluster <- as.factor(kmeans_result$cluster)
+
+
+```
+
+### Visualizing the clustering from k-means
+
+```{r}
+ggplot(shopping_data, aes(x = quantity, y = age)) +
+  geom_point(aes(color = factor(kmeans_result$cluster))) +
+  labs(title = "Scatter Plot with 3 Clusters", x = "quantity", y = "age", color = "Cluster") +
+  scale_color_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
+  theme_minimal()
 ```

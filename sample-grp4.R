@@ -1,5 +1,14 @@
 # Install required packages if not installed
+<<<<<<< Updated upstream
 install.packages(c("dbscan",  "kmeans"))
+=======
+# install.packages(c("arules", "caret", "dbscan", "ggplot2", "e1071", "kmeans"))
+install.packages("kmeans")
+getwd()
+setwd("C:/Users/ual-laptop/Desktop/INFO 523/Data-Mining-Project-Group4")
+
+
+>>>>>>> Stashed changes
 
 # Load necessary libraries
 library(arules)      # for association rules
@@ -11,13 +20,32 @@ library(kmeans)      # for k-means clustering
 
 # Load your dataset
 shopping_data <- read.csv("data/customer_shopping_data.csv")
+<<<<<<< Updated upstream
 View(shopping_data)
+=======
+
+View(shopping_data)
+
+>>>>>>> Stashed changes
 # Data Pre-processing
 # Check for missing values
 missing_values <- colSums(is.na(shopping_data))
 print("Missing Values:")
 print(missing_values)
 
+<<<<<<< Updated upstream
+=======
+
+unique(shopping_data$shopping_mall)
+
+unique(shopping_data$age)
+
+
+# Impute missing values if necessary
+# Example: Impute missing values in the "age" column with the mean
+shopping_data$age[is.na(shopping_data$age)] <- mean(shopping_data$age, na.rm = TRUE)
+
+>>>>>>> Stashed changes
 # Check for duplicated rows
 duplicated_rows <- shopping_data[duplicated(shopping_data), ]
 print("Duplicated Rows:")
@@ -45,8 +73,47 @@ shopping_data <- shopping_data[!(shopping_data$quantity %in% outliers), ]
 
 # Association Rules
 # Example: Apriori algorithm
-association_rules <- apriori(shopping_data[, c("category", "payment_method")], parameter = list(support = 0.01, confidence = 0.7))
+association_rules <- apriori(shopping_data[, c("category", "gender")], parameter = list(support = 0.01, confidence = 0.60))
 inspect(association_rules)
+
+association_rules
+
+rules1 <- as(association_rules, "data.frame")
+
+rules1
+
+View(rules1)
+
+head(rules1[, c(category, gender)])
+
+library(ggplot2)
+
+# Scatter plot of Support vs. Confidence
+ggplot(rules1, aes(x = support, y = confidence)) +
+  geom_line() +
+  labs(title = "Association Rules: Support vs. Confidence",
+       x = "Support",
+       y = "Confidence")
+
+
+specific_rule <- rules1[rules1$rules == "{category=Clothing} => {gender=Female}", ]
+
+# Create a data frame for the specific rule
+rule_data <- data.frame(
+  Measure = c("Support", "Confidence", "Lift"),
+  Value = c(specific_rule$support, specific_rule$confidence, specific_rule$lift)
+)
+
+# Bar plot for Support, Confidence, and Lift
+ggplot(rule_data, aes(x = Measure, y = Value, fill = Measure)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(title = "Association Rule: {category=Clothing} => {gender=Female}",
+       x = "Measure",
+       y = "Value") +
+  theme_minimal()
+
+
+
 
 # Classification
 # Example 1: Decision Tree
