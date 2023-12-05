@@ -66,4 +66,27 @@ ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
   scale_fill_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
   theme_minimal()
 
+#---------------------------------------------------------------------------
+library(fmsb)
+
+male_data <- shopping_data[shopping_data$gender == "Male", "category"]
+female_data <- shopping_data[shopping_data$gender == "Female", "category"]
+
+# Create spider plots for each gender
+spider_plot <- function(data, gender) {
+  # Convert data to matrix format
+  data_matrix <- as.data.frame(matrix(data, ncol = 1))
+  
+  # Set column names for the spider plot
+  colnames(data_matrix) <- c("Clothing", "Shoes", "Books", "Cosmetics", "Food & Beverage", "Toys", "Technology", "Souvenir")
+  
+  # Create and display the spider plot
+  radarchart(data_matrix, axistype = 0, pcol = ifelse(gender == "Male", "blue", "pink"), 
+             plty = 1, pty = 16, pfcol = ifelse(gender == "Male", "blue", "pink"), 
+             title = paste("Spider Plot - Category for", gender))
+}
+
+# Create spider plots for both genders
+spider_plot(male_data, "Male")
+spider_plot(female_data, "Female")
 
