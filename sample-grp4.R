@@ -1,5 +1,5 @@
 # Install required packages if not installed
-# install.packages(c("arules", "caret", "dbscan", "ggplot2", "e1071", "kmeans"))
+install.packages(c("dbscan",  "kmeans"))
 
 # Load necessary libraries
 library(arules)      # for association rules
@@ -10,17 +10,13 @@ library(e1071)       # for SVM classification
 library(kmeans)      # for k-means clustering
 
 # Load your dataset
-shopping_data <- read.csv("your_dataset.csv")
-
+shopping_data <- read.csv("data/customer_shopping_data.csv")
+View(shopping_data)
 # Data Pre-processing
 # Check for missing values
 missing_values <- colSums(is.na(shopping_data))
 print("Missing Values:")
 print(missing_values)
-
-# Impute missing values if necessary
-# Example: Impute missing values in the "age" column with the mean
-shopping_data$age[is.na(shopping_data$age)] <- mean(shopping_data$age, na.rm = TRUE)
 
 # Check for duplicated rows
 duplicated_rows <- shopping_data[duplicated(shopping_data), ]
@@ -35,7 +31,7 @@ shopping_data <- unique(shopping_data)
 # Example: Convert "category" and "payment_method" to factors
 shopping_data$category <- as.factor(shopping_data$category)
 shopping_data$payment_method <- as.factor(shopping_data$payment_method)
-
+unique(shopping_data$category)
 # Explore the data after pre-processing
 summary(shopping_data)
 
@@ -59,25 +55,51 @@ train_index <- createDataPartition(shopping_data$payment_method, p = 0.8, list =
 train_data <- shopping_data[train_index, ]
 test_data <- shopping_data[-train_index, ]
 
+print(test_data$payment_method)
+
+test_data$payment_method <- factor(test_data$payment_method, levels = levels(train_data$payment_method))
+
 model_decision_tree <- train(payment_method ~ age + category + quantity, data = train_data, method = "rpart")
 predictions_decision_tree <- predict(model_decision_tree, newdata = test_data)
+predictions_decision_tree 
+# Ensure that the predicted levels match the reference levels
+predictions_decision_tree <- factor(predictions_decision_tree, levels = levels(test_data$payment_method))
+unique(predictions_decision_tree)
 confusionMatrix(predictions_decision_tree, test_data$payment_method)
 
 # Example 2: SVM
-model_svm <- svm(payment_method ~ age + category + quantity, data = train_data)
+model_svm <- svm(price ~ age  + quantity, data = train_data)
 predictions_svm <- predict(model_svm, newdata = test_data)
+predictions_svm
 confusionMatrix(predictions_svm, test_data$payment_method)
 
 # Clustering
 # Example 1: DBSCAN
 shopping_features <- shopping_data[, c("age", "quantity", "price")]
 
-dbscan_result <- dbscan(shopping_features, eps = 3, minPts = 5)
+dbscan_result <- dbscan(shopping_features, eps = 3, minPts = 1000)
 table(dbscan_result$cluster)
+dbscan_result
+cluster_data <- data.frame(shopping_features, Cluster = dbscan_result$cluster)
+ggplot(cluster_data, aes(x = quantity, y = age, color = factor(Cluster))) +
+  geom_point() +
+  labs(title = "DBSCAN Clustering Results",
+       x = "quantity", y = "Age", color = "Cluster") 
+ #
+
 
 # Example 2: k-means
 kmeans_result <- kmeans(shopping_features, centers = 3)
 table(kmeans_result$cluster)
+kmeans_result$cluster
+shopping_data$cluster <- as.factor(kmeans_result$cluster)
+
+#cluster visual
+
+ggplot(shopping_data, aes(x = quantity, y = age)) +
+  geom_point(aes(color = factor(kmeans_result$cluster))) +
+  labs(title = "Scatter Plot with 3 Clusters", x = "quantity", y = "age", color = "Cluster") +
+  scale_color_manual(values = c("blue", "green", "red"))  # Customize colors if needed
 
 # Visualization
 # Example: Scatter plot
@@ -87,8 +109,8 @@ ggplot(shopping_data, aes(x = age, y = quantity, color = category)) +
 
 # Performance Evaluation (for classification, in this case)
 # Example: ROC curve for SVM
-roc_curve_svm <- roc(test_data$payment_method, as.numeric(predictions_svm))
-plot(roc_curve_svm, col = "blue", main = "ROC Curve (SVM)", lwd = 2)
+roc_curve_dt <- roc(test_data$payment_method, as.numeric(predictions_decision_tree))
+plot(roc_curve_dt, col = "blue", main = "ROC Curve (SVM)", lwd = 2)
 
 # Additional performance metrics for SVM
 confusionMatrix(predictions_svm, test_data$payment_method)
