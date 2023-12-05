@@ -1,0 +1,137 @@
+---
+title: "Customer_Shopping_Info_Data_Mining"
+format: pdf
+editor: visual
+---
+
+## Setup & Loading Libraries
+
+```{r Set-up, warning=FALSE, message=FALSE}
+if(!require(pacman)) 
+  install.packages("pacman")   
+
+pacman::p_load(tidyverse,      
+               dplyr,          
+               janitor,        
+               ggrepel,        
+               MetBrewer,      
+               ggplot2         
+               )
+```
+
+This code will will check and install "pacman" package if not installed and loads the packages which are already installed in the machine.
+
+```{r Set-up2, warning=FALSE, message=FALSE}
+# set theme for ggplot2
+ggplot2::theme_set(ggplot2::theme_minimal(base_size = 14))
+
+# set width of code output
+options(width = 65)
+
+# set figure parameters for knitr
+knitr::opts_chunk$set(
+  fig.width = 9.2,        # 9.2" width
+  fig.asp = 0.72,       # the golden ratio
+  fig.retina = 3,       # dpi multiplier for displaying HTML output on retina
+  fig.align = "center", # center align figures
+  dpi = 300             # higher dpi, sharper image
+ )
+```
+
+## Loading data-set
+
+```{r}
+shopping_data <- read.csv("data/customer_shopping_data.csv")
+
+shopping_data
+```
+
+## Data Cleaning
+
+```{r}
+# Checking if there are any NA's in the dataset 
+unique(is.na(shopping_data))
+
+# Data-Cleaning
+
+# Checking for missing values
+missing_values <- colSums(is.na(shopping_data))
+missing_values
+
+# Checking for duplicated rows
+duplicated_rows <- shopping_data[duplicated(shopping_data), ]
+duplicates_rows
+
+# Converting categorical variables to factors
+shopping_data$gender <- as.factor(shopping_data$gender)
+shopping_data$category <- as.factor(shopping_data$category)
+shopping_data$payment_method <- as.factor(shopping_data$payment_method)
+shopping_data$shopping_mall <- as.factor(shopping_data$shopping_mall)
+
+# Detecting and handle outliers using a more robust method (Tukey's method)
+outliers <- boxplot.stats(shopping_data$quantity)$out
+outliers
+```
+
+## Association Rule Mining
+
+### Creating transactions & finding the maximal sets
+
+```{r}
+transactions <- as(shopping_data, "transactions")
+
+sets <- apriori(transactions, parameter = list(support = 0.05, target = "frequent itemsets"))
+inspect(sets)
+
+maximal = sets[is.maximal(sets)]
+summary(maximal)
+inspect(head(maximal, n = 5, by = "support"))
+
+maximal
+```
+
+### Making a maximal set with main focus on Category variable
+
+```{r}
+maximal_cat_cloth <- subset(maximal, subset=(items %in% "category=Clothing"))
+maxi_cloth_df <- as(maximal_cat_cloth, "data.frame")
+
+maxi_cloth_df
+```
+
+### Making a maximal set with main focus on Female value from Gender variable
+
+```{r}
+maximal_gen_female <- subset(maximal, subset=(items %in% "gender=Female"))
+gen_female_df <- as(maximal_gen_female, "data.frame")
+
+gen_female_df
+```
+
+### Mining rules using apriori & inspceting top rules
+
+```{r}
+rules <- apriori(shopping_data, parameter = list(support = 0.05, confidence = 0.5, target = "rules", minlen = 2))
+
+rules_max <- subset(rules, subset = is.maximal(rules))
+
+inspect(rules_max)
+
+df_max_apriori_rules <- as(rules_max, "data.frame")
+
+df_max_apriori_rules
+```
+
+### Mining rules using eclat & inspecting top rules
+
+```{r}
+maximal_eclat <- eclat(transactions, parameter = list(support = 0.05, maxlen = 10))
+
+rules_from_maximal <- ruleInduction(maximal_eclat, transactions, confidence = 0.5)
+
+rules_max_eclat <- subset(rules_from_maximal, subset = is.maximal(rules_from_maximal))
+
+df_max_eclat_rules <- as(rules_max_eclat, "data.frame")
+
+df_max_eclat_rules
+```
