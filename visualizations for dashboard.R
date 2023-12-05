@@ -30,5 +30,40 @@ circularbc_data |>
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(0, min(circularbc_data$total_quantity) * 11)
 
+#--------------------------------------------------------------------------------------------
+
+library(ggplot2)
+
+# ... (your data loading and preprocessing code)
+
+# Pie Chart for Category Distribution
+category_distribution <- table(shopping_data$category)
+category_percentages <- prop.table(category_distribution) * 100
+category_data <- data.frame(Category = names(category_distribution), Count = category_distribution)
+
+ggplot(category_data, aes(x = "", y = category_percentages , fill = Category)) +
+  geom_bar(stat = "identity", width = 1, color = "black") +
+  geom_text(aes(label = paste0(round(category_percentages, 1), "%")), position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +
+  scale_fill_manual(values = rainbow(length(category_distribution))) +
+  labs(title = "Category Distribution",
+       fill = "Category") +
+  theme_void() +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "right")
+
+shopping_data$age_group <- cut(shopping_data$age, breaks = c(15, 25, 35, 45, 55, 65, Inf), labels = c("15-25", "26-35", "36-45", "46-55", "56-65", "66+"))
+
+# Bar Graph for Age Group vs Payment Method
+bar_data <- table(shopping_data$age_group, shopping_data$payment_method)
+bar_data <- as.data.frame(bar_data)
+
+ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Age Group vs Payment Method",
+       x = "Age Group", y = "Frequency") +
+  scale_fill_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
+  theme_minimal()
 
 
