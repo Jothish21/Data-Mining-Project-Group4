@@ -93,8 +93,17 @@ testing_data <- shopping_data[-trainIndex, ]
 rf_model <- randomForest(gender ~ ., data = training_data)
 
 predictions_rf <- predict(rf_model, newdata = testing_data)
+predictions_rf 
+conf_matrix1 <- confusionMatrix(predictions_rf, testing_data$gender)
 
-confusionMatrix(predictions_rf, testing_data$gender)
+
+print(conf_matrix1)
+
+# Plot Confusion Matrix
+plot(conf_matrix1$table, 
+     col = conf_matrix1$byClass,
+     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix1$overall["Accuracy"], 3)))
+
 #---------------------------------------------------------------------
 
 library(class)
@@ -112,7 +121,15 @@ nb_model <- naiveBayes(gender ~ ., data = training_data)
 
 predictions_nb <- predict(nb_model, newdata = testing_data)
 
-confusionMatrix(predictions_nb, testing_data$gender)
+conf_matrix <- confusionMatrix(predictions_nb, testing_data$gender)
+
+# Print Confusion Matrix
+print(conf_matrix)
+
+# Plot Confusion Matrix
+plot(conf_matrix$table, 
+     col = conf_matrix$byClass,
+     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix$overall["Accuracy"], 3)))
 
 typeof(predictions_nb)
 typeof(testing_data$gender)
