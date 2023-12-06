@@ -1,8 +1,8 @@
 ---
-title: "Customer_Shopping_Info_Data_Mining"
+title: "Istanbul Shopper's Atlas: Unveiling Trends Across 10 Malls"
 format: pdf
 editor: visual
-author: "Jothish Kumar Polaki, Vidhyananth Sivashanmugam, Rohit Kalakala"
+author: "Jothish Kumar Polaki,\nVidhyananth Sivashanmugam,\nRohit Kalakala"
 ---
 
 ## Setup & Loading Libraries
@@ -25,29 +25,12 @@ pacman::p_load(tidyverse,
 
 This code will will check and install "pacman" package if not installed and loads the packages which are already installed in the machine.
 
-```{r Set-up2, warning=FALSE, message=FALSE}
-# set theme for ggplot2
-ggplot2::theme_set(ggplot2::theme_minimal(base_size = 14))
-
-# set width of code output
-options(width = 65)
-
-# set figure parameters for knitr
-knitr::opts_chunk$set(
-  fig.width = 9.2,        # 9.2" width
-  fig.asp = 0.72,       # the golden ratio
-  fig.retina = 3,       # dpi multiplier for displaying HTML output on retina
-  fig.align = "center", # center align figures
-  dpi = 300             # higher dpi, sharper image
- )
-```
-
 ## Loading data-set
 
 ```{r load_data, warning=FALSE, message=FALSE}
 shopping_data <- read.csv("data/customer_shopping_data.csv")
 
-shopping_data
+glimpse(shopping_data)
 ```
 
 ## Data Cleaning
@@ -81,7 +64,7 @@ bc_data <- shopping_data |>
   summarise(total_quantity = sum(quantity)) |>
   ungroup()
 
-bc_data
+glimpse(bc_data)
 ```
 
 ### Visualization of total quantity purchased by gender for each category
@@ -132,7 +115,7 @@ shopping_data$age_group <- cut(shopping_data$age, breaks = c(15, 25, 35, 45, 55,
 bar_data <- table(shopping_data$age_group, shopping_data$payment_method)
 bar_data <- as.data.frame(bar_data)
 
-bar_data
+glimpse(bar_data)
 ```
 
 ### Visualizing the payment methods used by different age groups
@@ -141,12 +124,13 @@ bar_data
 ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Age Group vs Payment Method",
-       x = "Age Group", y = "Frequency") +
+       x = "Age Group", y = "Frequency",
+       fill = "Payment Methods") +
   scale_fill_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
   theme_minimal()
 ```
 
-###  Visualizing Price vs Quantity purchased based on gender
+### Visualizing Price vs Quantity purchased based on gender
 
 ```{r bubble_plot, warning=FALSE, message=FALSE}
 ggplot(shopping_data, aes(x = price, y = quantity, size = quantity, color = gender)) +
@@ -165,7 +149,7 @@ ggplot(shopping_data, aes(x = price, y = quantity, size = quantity, color = gend
 transactions <- as(shopping_data, "transactions")
 
 sets <- apriori(transactions, parameter = list(support = 0.05, target = "frequent itemsets"))
-inspect(sets)
+inspect(head(sets), n = 5, by = "support")
 
 maximal = sets[is.maximal(sets)]
 summary(maximal)
