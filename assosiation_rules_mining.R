@@ -6,6 +6,7 @@ shopping_data <- read.csv("data/customer_shopping_data.csv")
 View(shopping_data)
 shopping_data
 
+
 shopping_data$category <- as.factor(shopping_data$category)
 shopping_data$gender <- as.factor(shopping_data$gender)
 
@@ -34,6 +35,8 @@ View(maxi_cloth_df)
 maximal_gen_female <- subset(maximal, subset=(items %in% "gender=Female"))
 gen_female_df <- as(maximal_gen_female, "data.frame")
 View(gen_female_df)
+
+
 # mining rules using apriori & inspceting top rules
 rules <- apriori(shopping_data, parameter = list(support = 0.05, confidence = 0.5, target = "rules", minlen = 2))
 
