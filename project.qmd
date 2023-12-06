@@ -13,10 +13,13 @@ if(!require(pacman))
 
 pacman::p_load(tidyverse,      
                dplyr,          
-               janitor,        
-               ggrepel,        
-               MetBrewer,      
-               ggplot2         
+               caret,        
+               ggplot2,        
+               randomForest,      
+               arules,
+               e1071,
+               dbscan,
+               kmeans
                )
 ```
 
@@ -41,7 +44,7 @@ knitr::opts_chunk$set(
 
 ## Loading data-set
 
-```{r}
+```{r load_data, warning=FALSE, message=FALSE}
 shopping_data <- read.csv("data/customer_shopping_data.csv")
 
 shopping_data
@@ -49,7 +52,7 @@ shopping_data
 
 ## Data Cleaning
 
-```{r}
+```{r data_cleaning, warning=FALSE, message=FALSE}
 # Checking if there are any NA's in the dataset 
 unique(is.na(shopping_data))
 
@@ -72,7 +75,7 @@ outliers
 
 ### Total quantity purchase of all category by gender
 
-```{r}
+```{r bar_chart_data, warning=FALSE, message=FALSE}
 bc_data <- shopping_data |>
   group_by(gender, category) |>
   summarise(total_quantity = sum(quantity)) |>
@@ -83,7 +86,7 @@ bc_data
 
 ### Visualization of total quantity purchased by gender for each category
 
-```{r}
+```{r bar_chart1, warning=FALSE, message=FALSE}
 bc_data |>
   ggplot(aes(x = category, y = total_quantity, fill = gender)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -94,12 +97,12 @@ bc_data |>
   theme_minimal() +
   scale_fill_manual(values = c("Female" = "pink", "Male" = "lightblue")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylim(0, min(circularbc_data$total_quantity) * 11)
+  ylim(0, min(bc_data$total_quantity) * 11)
 ```
 
 ### Preparering data for finding out the distribution of all category items
 
-```{r}
+```{r pie_chart_data, warning=FALSE, message=FALSE}
 category_distribution <- table(shopping_data$category)
 category_percentages <- prop.table(category_distribution) * 100
 category_data <- data.frame(Category = names(category_distribution), Count = category_distribution)
@@ -107,7 +110,7 @@ category_data <- data.frame(Category = names(category_distribution), Count = cat
 
 ### Visualizing Distribution of all Category items
 
-```{r}
+```{r pie_chart, warning=FALSE, message=FALSE}
 ggplot(category_data, aes(x = "", y = category_percentages , fill = Category)) +
   geom_bar(stat = "identity", width = 1, color = "black") +
   geom_text(aes(label = paste0(round(category_percentages, 1), "%")), position = position_stack(vjust = 0.5)) +
@@ -123,7 +126,7 @@ ggplot(category_data, aes(x = "", y = category_percentages , fill = Category)) +
 
 ### Finding out the payment method usage by ages
 
-```{r}
+```{r bar_chart_data2, warning=FALSE, message=FALSE}
 shopping_data$age_group <- cut(shopping_data$age, breaks = c(15, 25, 35, 45, 55, 65, Inf), labels = c("15-25", "26-35", "36-45", "46-55", "56-65", "66+"))
 
 bar_data <- table(shopping_data$age_group, shopping_data$payment_method)
@@ -134,7 +137,7 @@ bar_data
 
 ### Visualizing the payment methods used by different age groups
 
-```{r}
+```{r bar_chart2, warning=FALSE, message=FALSE}
 ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Age Group vs Payment Method",
@@ -143,11 +146,22 @@ ggplot(bar_data, aes(x = Var1, y = Freq, fill = Var2)) +
   theme_minimal()
 ```
 
+###  Visualizing Price vs Quantity purchased based on gender
+
+```{r bubble_plot, warning=FALSE, message=FALSE}
+ggplot(shopping_data, aes(x = price, y = quantity, size = quantity, color = gender)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "Bubble Plot for Price vs. Quantity by Gender",
+       x = "Price", y = "Quantity", size = "Quantity", color = "Gender") +
+  theme_minimal()
+```
+
 ## Association Rule Mining
 
 ### Creating transactions & finding the maximal sets
 
-```{r}
+```{r assoc_preprocessing, warning=FALSE, message=FALSE}
 transactions <- as(shopping_data, "transactions")
 
 sets <- apriori(transactions, parameter = list(support = 0.05, target = "frequent itemsets"))
@@ -162,7 +176,7 @@ head(maximal)
 
 ### Making a maximal set with main focus on Category variable
 
-```{r}
+```{r maxi_table1, warning=FALSE, message=FALSE}
 maximal_cat_cloth <- subset(maximal, subset=(items %in% "category=Clothing"))
 
 maxi_cloth_df <- as(maximal_cat_cloth, "data.frame")
@@ -170,9 +184,17 @@ maxi_cloth_df <- as(maximal_cat_cloth, "data.frame")
 head(maxi_cloth_df)
 ```
 
+### Interpretation:-
+
+-   **Shopping Mall Preferences :** Different shopping malls exhibit varying associations with clothing purchases. Metrocity, Kanyon, and Mall of Istanbul show significant connections with customers buying clothing items.
+
+-   **Payment Method Usage :** There's a notable preference for payment methods when purchasing clothing. Debit cards emerge as a favored payment mode among customers.
+
+-   **Quantity and Price Range Associations :** Patterns in the quantity of clothing items bought (e.g., 1-2 items) and their price ranges (e.g., \$81.3 to \$900) shed light on customer preferences and spending habits.
+
 ### Making a maximal set with main focus on Female value from Gender variable
 
-```{r}
+```{r maxi_table2, warning=FALSE, message=FALSE}
 maximal_gen_female <- subset(maximal, subset=(items %in% "gender=Female"))
 
 gen_female_df <- as(maximal_gen_female, "data.frame")
@@ -180,9 +202,19 @@ gen_female_df <- as(maximal_gen_female, "data.frame")
 head(gen_female_df)
 ```
 
+### Interpretation:-
+
+-   **Shopping Mall Preferences for Females :** There is a strong association of females with specific shopping malls. Metrocity, Istinye Park, and Metropol AVM indicate a significant correlation with female shoppers, portraying preferences among this demographic for these malls.
+
+-   **Payment Method Preference :** Female customers exhibit a distinct preference for payment methods. Debit cards emerge prominently as the favored payment mode among female shoppers.
+
+-   **Age Group Preferences :** The analysis highlights particular age groups within females that show consistent associations with shopping patterns. Females between 18-35, 35-52, and 52-69 exhibit diverse preferences in purchasing behavior, especially in terms of item categories and price ranges.
+
+-   **Category-Specific Preferences :** Female shoppers exhibit strong associations with specific categories such as Clothing, Shoes, Toys, Cosmetics, and Food & Beverage, showcasing distinct preferences for these product categories.
+
 ### Mining rules using apriori & inspceting top rules
 
-```{r}
+```{r apriori, warning=FALSE, message=FALSE}
 rules <- apriori(shopping_data, parameter = list(support = 0.05, confidence = 0.5, target = "rules", minlen = 2))
 
 rules_max <- subset(rules, subset = is.maximal(rules))
@@ -194,9 +226,19 @@ df_max_apriori_rules <- as(rules_max, "data.frame")
 head(df_max_apriori_rules)
 ```
 
+### Interpretation:-
+
+-   **Association between Product Categories and Price Ranges :** Certain categories like Books, Technology, and Souvenir are associated with specific price ranges (e.g., Books tend to be within the price range of 5.23 to 81.3)
+
+-   **Shopping Mall Preferences and Gender :** There are gender preferences observed in certain shopping malls. For instance, at Istinye Park, there's a higher tendency for female shoppers.
+
+-   **Association between Product Categories and Price Ranges with Gender :** Shoes and Toys categories have associations with price ranges and gender. Females tend to purchase Shoes within the price range of 900 to 5250 and Toys within the price range of 81.3 to 900
+
+-   **Age Group Preferences and Shopping Patterns :** Different age groups exhibit distinct shopping patterns. For instance, individuals aged 18 to 35 are inclined towards Clothing within the price range of 900 to 5250, while those aged 52 to 69 exhibit a similar preference but with a wider price range of 81.3 to 900. Moreover, certain age groups, like 35 to 52, exhibit preferences for Food & Beverage within a specific price range.
+
 ### Mining rules using eclat & inspecting top rules
 
-```{r}
+```{r eclat, warning=FALSE, message=FALSE}
 maximal_eclat <- eclat(transactions, parameter = list(support = 0.05, maxlen = 10))
 
 rules_from_maximal <- ruleInduction(maximal_eclat, transactions, confidence = 0.5)
@@ -208,11 +250,21 @@ df_max_eclat_rules <- as(rules_max_eclat, "data.frame")
 head(df_max_eclat_rules)
 ```
 
+### Interpretation:-
+
+-   **Category-Price Range Associations :** Books, Technology, Souvenir, and Food & Beverage categories exhibit associations with specific price ranges. For instance, Books are typically priced between 5.23 to 81.3 units, while Technology items are commonly within the price range of 900 to 5250 units.
+
+-   **Gender-Category Associations :** There are gender-specific preferences observed within certain product categories. For instance, there's a clear association between Female shoppers and categories like Food & Beverage, Clothing, Cosmetics, and Toys within various price ranges.
+
+-   **Age Group Preferences and Categories :** Different age groups show distinct preferences for specific categories. For instance, individuals aged 52 to 69 tend to favor Clothing items priced between 900 to 5250 units, whereas those aged 18 to 35 exhibit preferences for Clothing within a wider price range of 81.3 to 900 units.
+
+-   **Payment Method and Gender Associations :** There's a discernible relationship between payment methods and gender. Female shoppers tend to use specific payment methods, such as Cash or Credit Card, for certain categories like Clothing, Cosmetics, and Food & Beverage across varied price ranges.
+
 ## Classification
 
 ### Pre-Processing
 
-```{r}
+```{r Classification_preprocessing, warning=FALSE, message=FALSE}
 # Converting categorical variables to factors
 shopping_data$gender <- as.factor(shopping_data$gender)
 shopping_data$category <- as.factor(shopping_data$category)
@@ -222,7 +274,7 @@ shopping_data$shopping_mall <- as.factor(shopping_data$shopping_mall)
 
 ### Indexing and Splitting data-set
 
-```{r}
+```{r spliting_data, warning=FALSE, message=FALSE}
 set.seed(123)  # For reproducibility
 trainIndex <- createDataPartition(shopping_data$gender, p = 0.7, list = FALSE)
 training_data <- shopping_data[trainIndex, ]
@@ -231,7 +283,7 @@ testing_data <- shopping_data[-trainIndex, ]
 
 ### Random Forest
 
-```{r}
+```{r randomforest, warning=FALSE, message=FALSE}
 rf_model <- randomForest(gender ~ ., data = training_data)
 
 predictions_rf <- predict(rf_model, newdata = testing_data)
@@ -241,13 +293,13 @@ head(predictions_rf)
 
 ### Confusion Matrix for Evaluating Random Forest
 
-```{r}
+```{r rf_confmatrix, warning=FALSE, message=FALSE}
 conf_matrix1 <- confusionMatrix(predictions_rf, testing_data$gender)
 
 
-print(conf_matrix1)
+conf_matrix1
 precision <- conf_matrix1$byClass["Pos Pred Value"]
-recall <- conf_matrix$byClass["Sensitivity"]
+recall <- conf_matrix1$byClass["Sensitivity"]
 f1_score <- 2 * (precision * recall) / (precision + recall)
 
 cat("Precision:", precision, "\n")
@@ -257,7 +309,7 @@ cat("F1 Score:", f1_score, "\n")
 
 ### Plotting Confusion matrix for Random Forest classification
 
-```{r}
+```{r rf_plot, warning=FALSE, message=FALSE}
 plot(conf_matrix1$table, 
      col = conf_matrix1$byClass,
      main = paste("Confusion Matrix - Accuracy:", round(conf_matrix1$overall["Accuracy"], 3)))
@@ -265,7 +317,7 @@ plot(conf_matrix1$table,
 
 ### Naive Bayes
 
-```{r}
+```{r naivebayes, warning=FALSE, message=FALSE}
 nb_model <- naiveBayes(gender ~ ., data = training_data)
 
 predictions_nb <- predict(nb_model, newdata = testing_data)
@@ -275,12 +327,12 @@ head(predictions_nb)
 
 ### Confusion Matrix for Evaluating Naive Bayes
 
-```{r}
+```{r nb_confmatrix, warning=FALSE, message=FALSE}
 conf_matrix2 <- confusionMatrix(predictions_nb, testing_data$gender)
 
-print(conf_matrix2)
-precision1 <- conf_matrix$byClass["Pos Pred Value"]
-recall1 <- conf_matrix$byClass["Sensitivity"]
+conf_matrix2
+precision1 <- conf_matrix2$byClass["Pos Pred Value"]
+recall1 <- conf_matrix2$byClass["Sensitivity"]
 f1_score1 <- 2 * (precision * recall) / (precision + recall)
 
 cat("Precision:", precision1, "\n")
@@ -290,17 +342,17 @@ cat("F1 Score:", f1_score1, "\n")
 
 ### Plotting Confusion matrix for Naive Bayes classification
 
-```{r}
+```{r nb_plot, warning=FALSE, message=FALSE}
 plot(conf_matrix2$table, 
-     col = conf_matrix$byClass,
-     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix$overall["Accuracy"], 3)))
+     col = conf_matrix2$byClass,
+     main = paste("Confusion Matrix - Accuracy:", round(conf_matrix2$overall["Accuracy"], 3)))
 ```
 
 ## Clustering
 
 ### Clustering using DBSCAN
 
-```{r}
+```{r dbscan, warning=FALSE, message=FALSE}
 shopping_features <- shopping_data[, c("age", "quantity", "price")]
 
 dbscan_result <- dbscan(shopping_features, eps = 3, minPts = 1000)
@@ -313,7 +365,7 @@ head(cluster_data)
 
 ### Visualizing the clustering from DBSCAN
 
-```{r}
+```{r dbscan_plot, warning=FALSE, message=FALSE}
 ggplot(cluster_data, aes(x = quantity, y = age, color = factor(Cluster))) +
   geom_point() +
   labs(title = "DBSCAN Clustering Results",
@@ -323,7 +375,7 @@ ggplot(cluster_data, aes(x = quantity, y = age, color = factor(Cluster))) +
 
 ### Clustering using k-means
 
-```{r}
+```{r kmeans, warning=FALSE, message=FALSE}
 kmeans_result <- kmeans(shopping_features, centers = 3)
 table(kmeans_result$cluster)
 head(kmeans_result$cluster)
@@ -334,7 +386,7 @@ shopping_data$cluster <- as.factor(kmeans_result$cluster)
 
 ### Visualizing the clustering from k-means
 
-```{r}
+```{r kmeans_plot, warning=FALSE, message=FALSE}
 ggplot(shopping_data, aes(x = quantity, y = age)) +
   geom_point(aes(color = factor(kmeans_result$cluster))) +
   labs(title = "Scatter Plot with 3 Clusters", x = "quantity", y = "age", color = "Cluster") +
