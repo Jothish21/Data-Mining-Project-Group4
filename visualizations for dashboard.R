@@ -127,4 +127,14 @@ female_data <- shopping_data$category[shopping_data$gender == "Female"]
 spider_plot(male_data, "Male")
 spider_plot(female_data, "Female")
 
+#----------------------------------------------------------------
 
+#----------------------------------------------------------------
+
+ggplot(shopping_data, aes(x = price, y = quantity, size = quantity, color = gender)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "Bubble Plot for Price vs. Quantity by Gender",
+       x = "Price", y = "Quantity", size = "Quantity", color = "Gender") +
+  theme_minimal()
+#----------------------------------------------------------------
