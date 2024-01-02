@@ -1,14 +1,14 @@
 # Install required packages if not installed
-<<<<<<< Updated upstream
+
 install.packages(c("dbscan",  "kmeans"))
-=======
+
 # install.packages(c("arules", "caret", "dbscan", "ggplot2", "e1071", "kmeans"))
 install.packages("kmeans")
 getwd()
 setwd("C:/Users/ual-laptop/Desktop/INFO 523/Data-Mining-Project-Group4")
 
 
->>>>>>> Stashed changes
+
 
 # Load necessary libraries
 library(arules)      # for association rules
@@ -20,21 +20,18 @@ library(kmeans)      # for k-means clustering
 
 # Load your dataset
 shopping_data <- read.csv("data/customer_shopping_data.csv")
-<<<<<<< Updated upstream
-View(shopping_data)
-=======
 
 View(shopping_data)
+View(shopping_data)
 
->>>>>>> Stashed changes
+
 # Data Pre-processing
 # Check for missing values
 missing_values <- colSums(is.na(shopping_data))
 print("Missing Values:")
 print(missing_values)
 
-<<<<<<< Updated upstream
-=======
+
 
 unique(shopping_data$shopping_mall)
 
@@ -45,7 +42,6 @@ unique(shopping_data$age)
 # Example: Impute missing values in the "age" column with the mean
 shopping_data$age[is.na(shopping_data$age)] <- mean(shopping_data$age, na.rm = TRUE)
 
->>>>>>> Stashed changes
 # Check for duplicated rows
 duplicated_rows <- shopping_data[duplicated(shopping_data), ]
 print("Duplicated Rows:")
@@ -140,6 +136,8 @@ predictions_svm <- predict(model_svm, newdata = test_data)
 predictions_svm
 confusionMatrix(predictions_svm, test_data$payment_method)
 
+#-----------------------------------------------------------------------------
+
 # Clustering
 # Example 1: DBSCAN
 shopping_features <- shopping_data[, c("age", "quantity", "price")]
@@ -165,8 +163,9 @@ shopping_data$cluster <- as.factor(kmeans_result$cluster)
 
 ggplot(shopping_data, aes(x = quantity, y = age)) +
   geom_point(aes(color = factor(kmeans_result$cluster))) +
-  labs(title = "Scatter Plot with 3 Clusters", x = "quantity", y = "age", color = "Cluster") +
-  scale_color_manual(values = c("blue", "green", "red"))  # Customize colors if needed
+  labs(title = "K-means Clustering Results", x = "quantity", y = "age", color = "Cluster") +
+  scale_color_manual(values = c("blue", "green", "red")) +  # Customize colors if needed
+  theme_minimal()
 
 # Visualization
 # Example: Scatter plot

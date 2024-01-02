@@ -260,9 +260,9 @@ shopping_data$shopping_mall <- as.factor(shopping_data$shopping_mall)
 
 ```{r spliting_data, warning=FALSE, message=FALSE}
 set.seed(123)  # For reproducibility
-trainIndex <- createDataPartition(shopping_data$gender, p = 0.7, list = FALSE)
-training_data <- shopping_data[trainIndex, ]
-testing_data <- shopping_data[-trainIndex, ]
+trainIndex <- createDataPartition(selected_shopping_data$gender, p = 0.7, list = FALSE)
+training_data <- selected_shopping_data[trainIndex, ]
+testing_data <- selected_shopping_data[-trainIndex, ]
 ```
 
 ### Random Forest
